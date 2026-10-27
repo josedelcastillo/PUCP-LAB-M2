@@ -47,7 +47,7 @@ jobs:
       - name: Sin credenciales de AWS
         if: env.AWS_ACCESS_KEY_ID == ''
         working-directory: .
-        run: echo "::notice::Sin secretos de AWS en este repositorio: se omite terraform plan."
+        run: echo '::notice::Sin secretos de AWS en este repositorio, se omite terraform plan.'
       - uses: actions/checkout@v7
         if: env.AWS_ACCESS_KEY_ID != ''
       - uses: hashicorp/setup-terraform@v4
@@ -86,7 +86,7 @@ jobs:
       - name: Sin token de Infracost
         if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN == ''
         working-directory: .
-        run: echo "::notice::Sin secreto INFRACOST_CLI_AUTHENTICATION_TOKEN: se omite la estimación de costo."
+        run: echo '::notice::Sin secreto INFRACOST_CLI_AUTHENTICATION_TOKEN, se omite la estimación de costo.'
       - uses: actions/checkout@v7
         if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != ''
       - name: Instalar Infracost
