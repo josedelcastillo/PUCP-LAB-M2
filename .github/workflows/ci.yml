@@ -58,7 +58,7 @@ jobs:
       - name: terraform plan
         if: env.AWS_ACCESS_KEY_ID != ''
         run: |
-          printf 'alumno = "ci"\n' > terraform.tfvars
+          printf 'alumno = "ci-gha"\n' > terraform.tfvars
           terraform init -input=false
           terraform plan -input=false -lock=false -no-color -out=tfplan | tee plan.txt
           {
@@ -106,12 +106,12 @@ jobs:
         if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != '' && github.event_name == 'pull_request'
         working-directory: base/lab
         run: |
-          printf 'alumno = "ci"\n' > terraform.tfvars
+          printf 'alumno = "ci-gha"\n' > terraform.tfvars
           infracost scan --json > "$RUNNER_TEMP/base.json"
       - name: Costo de este cambio
         if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != ''
         run: |
-          printf 'alumno = "ci"\n' > terraform.tfvars
+          printf 'alumno = "ci-gha"\n' > terraform.tfvars
           {
             echo "### Costo mensual estimado (Infracost)"
             echo
