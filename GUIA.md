@@ -8,7 +8,7 @@
 
 - Cuenta de GitHub con sesión iniciada en el navegador (la misma del Lab 1).
 - Credenciales de AWS. Una de estas dos:
-  - **Cuenta del curso** (la mayoría): el profesor comparte las credenciales de su laboratorio de AWS Educate (`aws_access_key_id`, `aws_secret_access_key` y `aws_session_token`).
+  - **Cuenta del curso**: el profesor comparte las credenciales de su laboratorio de AWS Educate (`aws_access_key_id`, `aws_secret_access_key` y `aws_session_token`).
   - **Tu propio laboratorio de AWS Educate / Academy**: `AWS Details → AWS CLI → Show`.
 - Cuenta gratuita de Infracost (se crea en el paso 3; puedes registrarte con GitHub).
 
@@ -47,6 +47,8 @@ infracost --version
 ```
 
 **Verificación.** `get-caller-identity` muestra un `Arn` con `assumed-role/voclabs/`. `terraform version` muestra `v1.14` e `infracost --version` muestra `v2.18`.
+
+> En la pestaña `Actions` de tu repositorio verás correr el pipeline `CI` al crearlo. Es normal: valida el código y construye el mismo entorno que tu Codespace. Los jobs `plan` y `costo` terminan con un aviso de que faltan secretos; en este lab no los necesitas.
 
 > Si dice `Unable to locate credentials`, los secretos se crearon después de abrir el Codespace: `Ctrl+Shift+P` → `Codespaces: Rebuild Container`.
 >
@@ -180,9 +182,15 @@ Compara los dos planes. Busca los símbolos al lado de cada recurso:
 
 ## Paso 6 — ¿Cuánto cuesta el cambio? (7 min)
 
-Antes de cambiar la memoria de una función o el modo de cobro de una base de datos, mide la diferencia contra la línea base del paso 3. Aquí **no** ejecutas `terraform apply`: nada cambia en AWS.
+Antes de cambiar la memoria de una función o el modo de cobro de una base de datos, mide la diferencia contra una línea base. Aquí **no** ejecutas `terraform apply`: nada cambia en AWS.
 
-Para cada caso: agrega la línea al final de `terraform.tfvars`, guarda, ejecuta el `diff` y **borra la línea** antes del siguiente caso.
+1. Vuelve a generar la línea base: en el paso 5 cambiaste `terraform.tfvars` y la del paso 3 ya no corresponde a lo que tienes creado.
+
+```bash
+infracost scan --json > infracost-base.json
+```
+
+2. Para cada caso: agrega la línea al final de `terraform.tfvars`, guarda, ejecuta el `diff` y **borra la línea** antes del siguiente caso.
 
 ```bash
 infracost diff --compare-to infracost-base.json
@@ -284,6 +292,8 @@ aws sqs list-queues --queue-name-prefix m2-<apellido>-
 | `ResourceConflictException` / `ResourceInUseException` / `ResourceAlreadyExistsException` | Otra persona usa tu mismo `alumno`, o quedó algo de un `apply` sin state | Cambia `alumno` a uno único y avisa al profesor; no borres a mano |
 | `ExpiredToken` | Venció o se reinició la sesión de AWS Educate | Pega en la terminal los tres `export` con las credenciales nuevas (ver paso 1) |
 | `Resource precondition failed` | Quedó `servidor_ec2 = true` en `terraform.tfvars` | Borra esa línea |
+| `Invalid value for variable` en `alumno` | Tu usuario tiene menos de 3 o más de 20 caracteres, mayúsculas o tildes | Usa solo minúsculas, números y guiones (`perez`, `perezj`) |
+| `Unauthorized` en Infracost | No iniciaste sesión o venció | Repite `infracost auth login --oauth-use-device-flow` |
 | `Error acquiring the state lock` | Otro `plan`/`apply` en curso con el mismo state | Espera a que termine; no uses `force-unlock` salvo que sepas que nadie más está aplicando |
 | La página da `Forbidden` | La URL se creó hace segundos | Espera 30 segundos y recarga |
 
