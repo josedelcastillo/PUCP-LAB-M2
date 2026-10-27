@@ -1,0 +1,16 @@
+# Uso estimado para los recursos que se cobran por consumo.
+# Sin este archivo Infracost los muestra con costo $0.
+version: 0.1
+resource_usage:
+  aws_lambda_function.web:
+    monthly_requests: 10000000     # 10 millones de visitas al mes
+    request_duration_ms: 200
+  aws_dynamodb_table.pedidos:
+    storage_gb: 5
+    monthly_write_request_units: 2000000
+    monthly_read_request_units: 10000000
+  aws_sqs_queue.pedidos:
+    monthly_requests: 5000000
+  aws_cloudwatch_log_group.web:
+    storage_gb: 1
+    monthly_data_ingested_gb: 5

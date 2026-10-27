@@ -1,0 +1,10 @@
+# Configuración de Infracost para este proyecto.
+# Le indica qué variables usar y dónde está el uso estimado de los recursos por consumo.
+version: 0.1
+projects:
+  - path: .
+    name: lab
+    usage_file: infracost-usage.yml
+    terraform:
+      var_files:
+        - terraform.tfvars

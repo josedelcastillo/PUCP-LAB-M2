@@ -1,0 +1,145 @@
+# Pipeline del laboratorio.
+# En cada pull request hacia main: valida el código, muestra el plan de Terraform
+# y comenta en el PR cuánto cambia el costo mensual. No crea nada en AWS.
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write # para comentar el plan y el costo en el PR
+
+defaults:
+  run:
+    working-directory: lab
+
+jobs:
+  # Job 1: formato, sintaxis y pruebas. No necesita credenciales.
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.0
+          terraform_wrapper: false
+      # Falla si algún archivo no respeta `terraform fmt`.
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+      # Pruebas de tests/lab.tftest.hcl con un provider de AWS simulado.
+      - run: terraform test
+
+  # Job 2: terraform plan contra AWS. Solo corre si el repositorio tiene
+  # los secretos AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY y AWS_SESSION_TOKEN.
+  plan:
+    needs: validar
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_REGION: us-east-1
+    steps:
+      - name: Sin credenciales de AWS
+        if: env.AWS_ACCESS_KEY_ID == ''
+        working-directory: .
+        run: echo "::notice::Sin secretos de AWS en este repositorio: se omite terraform plan."
+      - uses: actions/checkout@v7
+        if: env.AWS_ACCESS_KEY_ID != ''
+      - uses: hashicorp/setup-terraform@v4
+        if: env.AWS_ACCESS_KEY_ID != ''
+        with:
+          terraform_version: 1.14.0
+          terraform_wrapper: false
+      - name: terraform plan
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: |
+          printf 'alumno = "ci"\n' > terraform.tfvars
+          terraform init -input=false
+          terraform plan -input=false -lock=false -no-color -out=tfplan | tee plan.txt
+          {
+            echo "### Plan de Terraform"
+            echo
+            echo '```'
+            grep -E '^  # |^Plan:|^No changes' plan.txt || true
+            echo '```'
+          } > resumen.md
+          cat resumen.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: marocchino/sticky-pull-request-comment@v3
+        if: env.AWS_ACCESS_KEY_ID != '' && github.event_name == 'pull_request'
+        with:
+          header: plan
+          path: lab/resumen.md
+
+  # Job 3: costo estimado con Infracost, comparado con la rama base.
+  # Solo corre si el repositorio tiene el secreto INFRACOST_CLI_AUTHENTICATION_TOKEN.
+  costo:
+    needs: validar
+    runs-on: ubuntu-latest
+    env:
+      INFRACOST_CLI_AUTHENTICATION_TOKEN: ${{ secrets.INFRACOST_CLI_AUTHENTICATION_TOKEN }}
+    steps:
+      - name: Sin token de Infracost
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN == ''
+        working-directory: .
+        run: echo "::notice::Sin secreto INFRACOST_CLI_AUTHENTICATION_TOKEN: se omite la estimación de costo."
+      - uses: actions/checkout@v7
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != ''
+      - name: Instalar Infracost
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != ''
+        working-directory: .
+        run: |
+          curl -sSfL https://github.com/infracost/cli/releases/download/v2.18.2/infracost-linux-amd64.tar.gz | tar -xz -C /tmp infracost
+          sudo mv /tmp/infracost /usr/local/bin/infracost
+          infracost --version
+      # En un PR, la línea base es el costo de la rama de destino (main).
+      - uses: actions/checkout@v7
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != '' && github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - name: Costo de la rama base
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != '' && github.event_name == 'pull_request'
+        working-directory: base/lab
+        run: |
+          printf 'alumno = "ci"\n' > terraform.tfvars
+          infracost scan --json > "$RUNNER_TEMP/base.json"
+      - name: Costo de este cambio
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != ''
+        run: |
+          printf 'alumno = "ci"\n' > terraform.tfvars
+          {
+            echo "### Costo mensual estimado (Infracost)"
+            echo
+            echo '```'
+            if [ -f "$RUNNER_TEMP/base.json" ]; then
+              infracost diff --compare-to "$RUNNER_TEMP/base.json" --no-color
+            else
+              infracost scan --no-color > /dev/null
+              infracost inspect --group-by resource --no-color
+            fi
+            echo '```'
+            echo
+            echo "Supone el tráfico de \`lab/infracost-usage.yml\`."
+          } > costo.md
+          cat costo.md
+          cat costo.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: marocchino/sticky-pull-request-comment@v3
+        if: env.INFRACOST_CLI_AUTHENTICATION_TOKEN != '' && github.event_name == 'pull_request'
+        with:
+          header: costo
+          path: lab/costo.md
+
+  # Job 4: construye el mismo contenedor que abre Codespaces y comprueba las herramientas.
+  devcontainer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: terraform version && aws --version && infracost --version

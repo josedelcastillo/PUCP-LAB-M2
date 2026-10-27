@@ -1,0 +1,10 @@
+.terraform/
+.build/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+tfplan
+tfplan.json
+infracost-base.json
+.terraform.tfstate.lock.info

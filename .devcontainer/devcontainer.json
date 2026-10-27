@@ -1,0 +1,13 @@
+{
+  "name": "PUCP-LAB-M2 · Terraform",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/terraform:1": { "version": "1.14.0" },
+    "ghcr.io/devcontainers/features/aws-cli:1": {}
+  },
+  "postCreateCommand": "curl -sSfL https://github.com/infracost/cli/releases/download/v2.18.2/infracost-linux-amd64.tar.gz | tar -xz -C /tmp infracost && sudo mv /tmp/infracost /usr/local/bin/infracost",
+  "containerEnv": { "AWS_REGION": "us-east-1", "AWS_DEFAULT_REGION": "us-east-1" },
+  "customizations": {
+    "vscode": { "extensions": ["hashicorp.terraform", "Infracost.infracost"] }
+  }
+}

@@ -1,0 +1,11 @@
+# Paso opcional: estado remoto en S3 con bloqueo nativo (Terraform >= 1.10).
+# Renombra este archivo a backend.tf y ejecuta:
+#   terraform init -migrate-state -backend-config="key=alumnos/<apellido>/terraform.tfstate"
+terraform {
+  backend "s3" {
+    bucket       = "<bucket-de-estado-que-entrega-el-profesor>"
+    region       = "us-east-1"
+    encrypt      = true
+    use_lockfile = true
+  }
+}
