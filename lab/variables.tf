@@ -23,7 +23,7 @@ variable "mensaje" {
 variable "memoria_mb" {
   description = "Memoria de la función Lambda. Lambda cobra por memoria x tiempo de ejecución."
   type        = number
-  default     = 128
+  default     = 256
 
   validation {
     condition     = contains([128, 256, 512, 1024], var.memoria_mb)
