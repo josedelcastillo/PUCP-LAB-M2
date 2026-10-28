@@ -244,9 +244,13 @@ terraform plan
 
 ## Paso 8 (opcional) — Mover el state a S3 (5 min)
 
-El state en tu Codespace se pierde si borras el Codespace; en equipo, además, dos personas no pueden compartirlo. El profesor dicta el nombre del bucket de estado.
+El state en tu Codespace se pierde si borras el Codespace; en equipo, además, dos personas no pueden compartirlo. El profesor ya creó un bucket compartido, `m2-tfstate-809172028802`: cada alumno guarda su state en su propia carpeta, `alumnos/<apellido>/`.
 
-1. `cp backend.tf.example backend.tf` y reemplaza el nombre del bucket.
+1. Copia la configuración del backend (ya trae el nombre del bucket):
+
+```bash
+cp backend.tf.example backend.tf
+```
 2. Migra:
 
 ```bash
@@ -255,7 +259,7 @@ terraform init -migrate-state -backend-config="key=alumnos/<apellido>/terraform.
 
 Responde `yes`.
 
-3. Comprueba: `terraform plan` dice `No changes` y `aws s3 ls s3://<bucket-de-estado>/alumnos/<apellido>/` muestra tu `terraform.tfstate`.
+3. Comprueba: `terraform plan` dice `No changes` y `aws s3 ls s3://m2-tfstate-809172028802/alumnos/<apellido>/` muestra tu `terraform.tfstate`.
 
 **Verificación.** Abre una segunda terminal (`+` en el panel de terminal), entra a `lab/` y ejecuta `terraform plan` en las dos casi a la vez: una falla con `Error acquiring the state lock`. Ese es el bloqueo que evita que dos personas apliquen al mismo tiempo.
 

@@ -1,9 +1,11 @@
 # Paso opcional: estado remoto en S3 con bloqueo nativo (Terraform >= 1.10).
+# El bucket lo crea el profesor antes de la clase y lo comparten todos;
+# cada alumno guarda su state en su propia carpeta (key).
 # Renombra este archivo a backend.tf y ejecuta:
 #   terraform init -migrate-state -backend-config="key=alumnos/<apellido>/terraform.tfstate"
 terraform {
   backend "s3" {
-    bucket       = "<bucket-de-estado-que-entrega-el-profesor>"
+    bucket       = "m2-tfstate-809172028802"
     region       = "us-east-1"
     encrypt      = true
     use_lockfile = true
